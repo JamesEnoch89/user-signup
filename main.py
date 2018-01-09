@@ -1,48 +1,137 @@
+from flask import Flask, request, redirect, render_template
 
-<!DOCTYPE html>
+import cgi
+import os
 
-<html>
-    <head>
-        <style>
-            .error {
-                color: red;
-            }
-        </style>
-    </head>
-    <body>
-    <h1>Signup</h1>
-        <form method="post">
-            <table>
-                <tr>
-                    <td><label for="username">Username</label></td>
-                    <td>
-                        <input name="username" type="text" value="">
-                        <span class="error"></span>
-                    </td>
-                </tr>
-                <tr>
-                    <td><label for="password">Password</label></td>
-                    <td>
-                        <input name="password" type="password">
-                        <span class="error"></span>
-                    </td>
-                </tr>
-                <tr>
-                    <td><label for="verify">Verify Password</label></td>
-                    <td>
-                        <input name="verify" type="password">
-                        <span class="error"></span>
-                    </td>
-                </tr>
-                <tr>
-                    <td><label for="email">Email (optional)</label></td>
-                    <td>
-                        <input name="email" value="">
-                        <span class="error"></span>
-                    </td>
-                </tr>
-            </table>
-            <input type="submit">
-        </form>
-    </body>
-</html>
+app = Flask(__name__)
+app.config['DEBUG'] = True
+
+@app.route('/')
+def display_user_signup_form():
+    return render_template('main.html')
+
+
+def empty_field(x):
+    if x:
+        return True
+    else:
+        return False
+
+def character_length(x):
+    if len(x) > 4 and len(x) < 21:
+        return True
+    else:
+        return False
+
+def email_at(x):
+    if x.count('@') == 1:
+        return True
+    else:
+        return False
+
+def email_period(x):
+    if x.count('.') == 1:
+        return True
+    else: 
+        return False
+
+@app.route("/", methods=['POST'])
+def user_signup_complete():
+
+    username = request.form['username']
+    password = request.form['password']
+    password_validate = request.form['password_validate']
+    email = request.form['email']
+
+    username_error = ""
+    password_error = ""
+    password_validate_error = ""
+    email_error = ""
+
+    err_required = "Required field"
+    err_reenter_pw = "Please re-enter password"
+    err_char_count = "must be between 5 and 20 characters"
+    err_no_spaces = "must not contain spaces"
+
+    if not empty_field(password):
+        password_error = err_required
+        password = ''
+        password_validate = ''
+    elif not character_length(password):
+        password_error = "Password " + err_char_count
+        password = ''
+        password_validate = ''
+        password_validate_error = err_reenter_pw
+    else:
+        if " " in password:
+            password_error = "Password " + err_no_spaces
+            password = ''
+            password_validate = ''
+            password_validate_error = err_reenter_pw
+
+    if password_validate != password:
+        password_validate_error = "Passwords must match"
+        password = ''
+        password_validate = ''
+        password_error = 'Passwords must match'
+
+    if not empty_field(username):
+        username_error = err_required
+        password = ''
+        password_validate = ''
+        password_error = err_reenter_pw
+        password_validate_error = err_reenter_pw
+    elif not character_length(username):
+        username_error = "Username " + err_char_count
+        password = ''
+        password_validate = ''
+        password_error = err_reenter_pw
+        password_validate_error = err_reenter_pw
+    else:
+        if " " in username:
+            username_error = "Username " + err_no_spaces
+            password = ''
+            password_validate = ''
+            password_error = err_reenter_pw
+            password_validate_error = err_reenter_pw
+
+    if empty_field(email):
+
+        if not character_length(email):
+            email_error = "Email " + err_char_count
+            password = ''
+            password_validate = ''
+            password_error = err_reenter_pw
+            password_validate_error = err_reenter_pw
+        elif not email_at(email):
+            email_error = "Email must contain one '@' symbol"
+            password = ''
+            password_validate = ''
+            password_error = err_reenter_pw
+            password_validate_error = err_reenter_pw
+        elif not email_period(email):
+            email_error = "Email must contain one '.'"
+            password = ''
+            password_validate = ''
+            password_error = err_reenter_pw
+            password_validate_error = err_reenter_pw
+        else:
+            if " " in email:
+                email_error = "Email " + err_no_spaces
+                password = ''
+                password_validate = ''
+                password_error = err_reenter_pw
+                password_validate_error = err_reenter_pw
+
+    if not username_error and not password_error and not password_validate_error and not email_error:
+        username = username
+        return redirect('/welcome?username={0}'.format(username))
+    else:
+        return render_template('main.html', username_error=username_error, username=username, password_error=password_error, password=password, password_validate_error=password_validate_error, password_validate=password_validate, email_error=email_error, email=email)
+
+@app.route('/welcome')
+def valid_signup():
+    username = request.args.get('username')
+    return render_template('welcome.html', username=username)
+
+app.run()
